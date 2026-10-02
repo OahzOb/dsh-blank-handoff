@@ -1,0 +1,43 @@
+{
+  "name": "dsh-blank-handoff",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "DeepSeek Harness plugin: a blank Session left behind by a previous connection hands off to a fresh one instead of being reported as \"already in use\".",
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./package.json": "./package.json"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true
+    }
+  },
+  "files": [
+    "index.js",
+    "client.js",
+    "cordis.patch.yml",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "dsh-plugin",
+    "deepseek-harness",
+    "session",
+    "remote"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/OahzOb/dsh-blank-handoff.git"
+  },
+  "homepage": "https://github.com/OahzOb/dsh-blank-handoff#readme",
+  "bugs": {
+    "url": "https://github.com/OahzOb/dsh-blank-handoff/issues"
+  }
+}

@@ -1,0 +1,8 @@
+# Bundle layer of `dsh-blank-handoff`: one plugin row.
+#
+# The Host half is inert; the Client half is what fixes the behaviour, because the
+# Session is chosen in the browser. The row is deliberately the whole bundle: there
+# is no Host command to run and nothing to configure.
+- insert:
+    - id: blank-handoff
+      name: dsh-blank-handoff

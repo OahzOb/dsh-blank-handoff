@@ -1,0 +1,8 @@
+# Every file here is text and authored with LF, matching the convention the two
+# client repositories use. It matters slightly more here than there: `client.js` is
+# served to a browser byte for byte, so a clone that converted its line endings would
+# deliver different bytes than the ones this plugin was verified against.
+* text=auto eol=lf
+
+*.png binary
+*.zip binary
