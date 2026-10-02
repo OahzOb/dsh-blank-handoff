@@ -1,8 +1,147 @@
 # dsh-blank-handoff
 
-A DeepSeek Harness plugin: a **blank Session** left behind by a previous
-connection hands off to a fresh one instead of being reported as *"this session
-is already in use"*.
+English | [中文](#中文)
+
+A DeepSeek Harness plugin. **Close a tab, connect again, and the interface says the
+previous session is occupied — this removes that.**
+
+## What it does
+
+Every connection runs its own `dsh web`, on its own port. When a browser opens one it
+picks a Workspace and prefers to reuse a **blank** Session — one nobody has said
+anything in — rather than creating another empty one. That preference is good, and it
+is also how a leftover Session gets adopted: the blank Session the *previous*
+connection created is still on disk.
+
+If that previous connection's server is still running it still holds the Session's
+write lease, and the Host refuses with `session/writer-held`. The shipped client
+recovers by creating a fresh Session, but it recovers *by throwing*, so the refusal
+reaches the Conversation and you are told:
+
+> 当前会话已被占用，可能是其他正在运行的 DSH 导致的（如其他 dsh web、桌面端），请退出其他正在运行的 DSH 后重试。
+
+That message is untrue. A blank Session is one nobody is using.
+
+**With this plugin installed**, that refusal is handed off to a fresh Session
+silently, and the message never appears.
+
+## What it deliberately does *not* change
+
+The refusal is real, and stays real, for a Session that is genuinely in use. A
+handoff needs **all** of:
+
+- a named Session in the request — which is what adoption is;
+- the `session/writer-held` code;
+- a failure naming that same Session;
+- a Session that is *not* the one the Conversation has selected.
+
+Reopening the Session you are looking at, and being refused, is still reported. Only
+the "nobody is using this" case is silent.
+
+## Install
+
+```
+plugin_manager install_bundle  target: github:OahzOb/dsh-blank-handoff
+```
+
+The plugin manager also accepts a repository URL, a `.tgz`, a registry name, or an
+absolute path to a checkout. It writes the dependency into the profile and adds the
+name to `dsh.profile.bundles` — both matter, and a package that is installed but not
+in the bundle list does nothing at all.
+
+The Client half loads with the page, so **an already-open page keeps the shipped
+behaviour until it reloads**.
+
+## Verify it is working
+
+The Client half keeps a counter on the page, because a plugin's console output is not
+a reliable channel:
+
+```js
+globalThis.__dshBlankHandoff   // { installed: boolean, handedOff: number }
+```
+
+`installed: false` after a reload means the Sessions service never appeared and the
+shipped behaviour is untouched. `handedOff` counts how many times the fix has fired.
+
+## Related
+
+The Android client this was found through:
+[dsh-tabs-android](https://github.com/OahzOb/dsh-tabs-android) — a phone client for
+Harness instances on other machines, over SSH.
+
+---
+
+<a id="中文"></a>
+# dsh-blank-handoff（中文）
+
+[English](#dsh-blank-handoff) | 中文
+
+一个 DeepSeek Harness 插件。**关掉标签页再连接，界面会说"上一个会话被占用" —— 这个插件
+把这句话去掉。**
+
+## 它做什么
+
+每次连接都会起一个自己的 `dsh web`，各有各的端口。浏览器打开其中一个时，会挑一个工作区，
+并倾向于**复用它找到的空白会话** —— 也就是没人说过话的那个 —— 而不是再建一个新的。这个
+倾向本身是好的，但也正是"接管遗留会话"的来源：上一次连接建的那个空白会话还在磁盘上。
+
+如果上一次连接的服务**还活着**，它就仍握着那个会话的写租约，于是 Host 以
+`session/writer-held` 拒绝。官方客户端其实能自愈（它会新建一个会话），但它是**先抛错再
+自愈**，所以这个拒绝会冒到对话里，让你看到：
+
+> 当前会话已被占用，可能是其他正在运行的 DSH 导致的（如其他 dsh web、桌面端），请退出其他正在运行的 DSH 后重试。
+
+**这句话是不成立的** —— 空白会话就是没人用的会话。
+
+**装上这个插件之后**，这种拒绝会被静默地转交给一个新会话，那句话不会再出现。
+
+## 它刻意**不**改的部分
+
+会话**确实在被使用**时，拒绝是真实的，也依然是真实的。触发转交需要**同时**满足：
+
+- 请求里指名了某个会话（这正是"接管"的特征）；
+- 错误码是 `session/writer-held`；
+- 错误指的就是那个会话；
+- 那个会话**不是**当前对话选中的那个。
+
+你主动重开正在看的会话而被拒绝，仍然会照实报错。只有"没人在用"这种情况才是静默的。
+
+## 安装
+
+```
+plugin_manager install_bundle  target: github:OahzOb/dsh-blank-handoff
+```
+
+插件管理器也接受仓库 URL、`.tgz`、包名，或磁盘上的绝对路径。它会把依赖写进 profile，并把
+包名加进 `dsh.profile.bundles` —— 两样都要：装了但不在 bundle 列表里，等于什么都没做。
+
+客户端半边随页面加载，所以**已经打开的页面在下一次刷新前仍是旧行为**。
+
+## 怎么确认它在工作
+
+客户端半边在页面上留了一个计数器（因为插件的 console 输出不是可靠通道）：
+
+```js
+globalThis.__dshBlankHandoff   // { installed: boolean, handedOff: number }
+```
+
+刷新后 `installed: false` 表示没等到 sessions 服务、行为未被改变；`handedOff` 是它生效过的
+次数。
+
+## 相关
+
+发现这个问题的安卓客户端：[dsh-tabs-android](https://github.com/OahzOb/dsh-tabs-android)
+—— 在手机上通过 SSH 连接其它机器上的 Harness。
+
+---
+
+# The engineering record
+
+The sections below are in English only, and they carry the detail the summary above
+does not: what each failure was, where it comes from, and how the fix was verified.
+Where the two overlap, the summary answers *what happens*; this answers *why it is
+that way*.
 
 ## The problem it fixes
 
