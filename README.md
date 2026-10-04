@@ -49,19 +49,23 @@ local path. It writes the dependency into the profile and adds the name to
 `dsh.profile.bundles` — both matter, and a package that is installed but not in the
 bundle list does nothing at all.
 
-**Prefer a `file:` path over a `link:` one for a local checkout.** A `link:` install
-leaves a reparse point in the profile's `node_modules`, and on Windows that link —
-a junction, since a symlink needs a privilege the install may not have — was measured
-failing `fs.realpathSync.native` inside the Harness's own profile resolution, which
-takes the whole profile down rather than just this plugin:
+**Prefer plain files over a link for a local checkout.** A `link:` install leaves a
+reparse point in the profile's `node_modules`, and on Windows that link — a junction,
+since creating a symlink needs a privilege the installing process may not have — was
+measured failing `fs.realpathSync.native` inside the Harness's own profile resolution.
+That does not skip one plugin; it stops the profile from booting:
 
 ```
 Error: UNKNOWN: unknown error, realpath
   'C:\Users\…\.dsh\profiles\web\node_modules\dsh-blank-handoff'
 ```
 
-A `file:` dependency copies the package instead, and then there is nothing to resolve.
-This checkout is installed that way.
+Copying the package into `node_modules` leaves nothing to resolve. That is how this
+checkout is installed: the files are copies, and the profile names the source in its
+`dependencies` so the next person can see where they came from. A `file:` dependency
+is the same idea done by the package manager, and is the better choice when the
+install can run one — but it is a dependency form, not a copy, so verify that it
+produced plain files rather than a link.
 
 The Client half loads with the page, so **an already-open page keeps the shipped
 behaviour until it reloads**.
