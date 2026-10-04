@@ -44,10 +44,24 @@ the "nobody is using this" case is silent.
 plugin_manager install_bundle  target: github:OahzOb/dsh-blank-handoff
 ```
 
-The plugin manager also accepts a repository URL, a `.tgz`, a registry name, or an
-absolute path to a checkout. It writes the dependency into the profile and adds the
-name to `dsh.profile.bundles` — both matter, and a package that is installed but not
-in the bundle list does nothing at all.
+The plugin manager also accepts a repository URL, a `.tgz`, a registry name, or a
+local path. It writes the dependency into the profile and adds the name to
+`dsh.profile.bundles` — both matter, and a package that is installed but not in the
+bundle list does nothing at all.
+
+**Prefer a `file:` path over a `link:` one for a local checkout.** A `link:` install
+leaves a reparse point in the profile's `node_modules`, and on Windows that link —
+a junction, since a symlink needs a privilege the install may not have — was measured
+failing `fs.realpathSync.native` inside the Harness's own profile resolution, which
+takes the whole profile down rather than just this plugin:
+
+```
+Error: UNKNOWN: unknown error, realpath
+  'C:\Users\…\.dsh\profiles\web\node_modules\dsh-blank-handoff'
+```
+
+A `file:` dependency copies the package instead, and then there is nothing to resolve.
+This checkout is installed that way.
 
 The Client half loads with the page, so **an already-open page keeps the shipped
 behaviour until it reloads**.
